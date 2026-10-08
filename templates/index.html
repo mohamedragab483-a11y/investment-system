@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منظومة إدارة المحافظ والمشاريع الاستثمارية</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Cairo', sans-serif; }</style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex">
+
+    <!-- القائمة الجانبية الثابتة (Sidebar) -->
+    <aside class="w-64 bg-slate-900 text-white min-h-screen p-5 fixed right-0 top-0 flex flex-col justify-between z-30 shadow-2xl overflow-y-auto">
+        <div>
+            <div class="flex items-center gap-2.5 pb-6 mb-6 border-b border-slate-800">
+                <span class="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-md shadow-emerald-500/50"></span>
+                <div>
+                    <h1 class="text-sm font-extrabold tracking-wide">منظومة الاستثمار</h1>
+                    <p class="text-[10px] text-slate-400 font-semibold">إدارة المحافظ والأصول</p>
+                </div>
+            </div>
+
+            <nav class="space-y-6">
+                <!-- المجموعة 1: المشاريع -->
+                <div>
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2 px-2">إدارة المشاريع</span>
+                    <div class="space-y-1">
+                        <a href="/" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 text-emerald-400 border border-slate-700/60 shadow-sm transition">
+                            <span>🏢</span>
+                            <span>المشاريع القائمة</span>
+                        </a>
+                        <button onclick="openModal('projectModal')" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 transition">
+                            <span class="text-emerald-400 font-bold">+</span>
+                            <span>إضافة مشروع جديد</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- المجموعة 2: الخزينة المركزية -->
+                <div>
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2 px-2">الخزينة والسيولة</span>
+                    <div class="space-y-1">
+                        <a href="/treasury" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 transition">
+                            <span>🏦</span>
+                            <span>الخزينة الموحدة المركزية</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- المجموعة 3: الوحدات والمبيعات -->
+                <div>
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2 px-2">الوحدات والمبيعات</span>
+                    <div class="space-y-1">
+                        <a href="/sales" class="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 transition">
+                            <div class="flex items-center gap-2.5">
+                                <span>📑</span>
+                                <span>المبيعات وجدولة الأقساط</span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- المجموعة 4: المساهمون -->
+                <div>
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2 px-2">حسابات المساهمين</span>
+                    <div class="space-y-1">
+                        <a href="/investors" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 transition">
+                            <span>👥</span>
+                            <span>كشوفات وحسابات الشركاء</span>
+                        </a>
+                        <button onclick="openModal('investorModal')" class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 transition">
+                            <span class="text-indigo-400 font-bold">+</span>
+                            <span>إضافة مساهم جديد</span>
+                        </button>
+                        <a href="/portal" target="_blank" class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-indigo-300 hover:text-white hover:bg-indigo-950/40 transition">
+                            <span>🌐</span>
+                            <span>معاينة بوابة المساهم</span>
+                        </a>
+                    </div>
+                </div>
+            </nav>
+        </div>
+
+        <!-- أسفل الـ Sidebar: تصفير البيانات والخروج -->
+        <div class="pt-4 border-t border-slate-800 space-y-2">
+            <form action="/system/reset-all-data" method="POST" onsubmit="return confirm('تحذير: هل أنت متأكد من تصفير ومسح كافة البيانات التجريبية للبدء من الصفر؟');">
+                <button type="submit" class="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] font-bold bg-amber-500/10 text-amber-400 hover:bg-amber-600 hover:text-white border border-amber-500/20 transition">
+                    <span>⚠️</span>
+                    <span>تصفير البيانات التجريبية</span>
+                </button>
+            </form>
+
+            <div class="flex items-center justify-between px-2 pt-1">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span class="text-xs font-bold text-slate-300">{{ username }}</span>
+                </div>
+                <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-mono">Admin</span>
+            </div>
+            <a href="/logout" class="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold bg-rose-600/10 text-rose-300 hover:bg-rose-600 hover:text-white border border-rose-500/20 transition">
+                <span>🚪</span>
+                <span>تسجيل الخروج</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="flex-1 mr-64 p-8 min-h-screen">
+
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h2 class="text-xl font-extrabold text-slate-900">سجل المشاريع ومواقف السيولة</h2>
+                <p class="text-xs text-slate-500 mt-1">متابعة نسب استرداد رأس المال، الخزينة، والمشاريع القائمة</p>
+            </div>
+            <div class="flex items-center gap-2.5">
+                <button onclick="openModal('projectModal')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                    <span>+ إضافة مشروع جديد 🏢</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- بطاقات المؤشرات العامة -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                <span class="text-xs font-bold text-slate-400 block mb-1">إجمالي رؤوس الأموال المكتتبة</span>
+                <span class="text-2xl font-extrabold text-slate-900">{{ "{:,.0f}".format(tot_capital) }} ج.م</span>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                <span class="text-xs font-bold text-slate-400 block mb-1">إجمالي التحصيلات الفعلية</span>
+                <span class="text-2xl font-extrabold text-emerald-600">{{ "{:,.0f}".format(tot_col) }} ج.م</span>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                <span class="text-xs font-bold text-slate-400 block mb-1">إجمالي المصروفات التشغيلية</span>
+                <span class="text-2xl font-extrabold text-rose-600">{{ "{:,.0f}".format(tot_exp) }} ج.م</span>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+                <span class="text-xs font-bold text-slate-400 block mb-1">إجمالي الأرباح المقررة الموزعة</span>
+                <span class="text-2xl font-extrabold text-emerald-700">{{ "{:,.0f}".format(tot_profit) }} ج.م</span>
+            </div>
+        </div>
+
+        <!-- جدول المشاريع القائمة -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <h3 class="text-base font-bold text-slate-900">سجل المشاريع ومواقف السيولة والخزينة</h3>
+                    <span class="text-xs bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full">{{ projects_cards|length }} مشاريع</span>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-right text-xs">
+                    <thead class="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
+                        <tr>
+                            <th class="py-3 px-4">كود</th>
+                            <th class="py-3 px-4">اسم المشروع</th>
+                            <th class="py-3 px-4">رأس المال الفعلي</th>
+                            <th class="py-3 px-4">التحصيلات الفعلية</th>
+                            <th class="py-3 px-4">المصروفات</th>
+                            <th class="py-3 px-4 text-emerald-700 font-bold">الأرباح المقررة</th>
+                            <th class="py-3 px-4 text-indigo-700 font-bold">سيولة الخزينة المتبقية</th>
+                            <th class="py-3 px-4">الحالة</th>
+                            <th class="py-3 px-4 text-center">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for item in projects_cards %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-3.5 px-4 font-mono text-slate-400 font-semibold">{{ item.project.code }}</td>
+                            <td class="py-3.5 px-4 font-bold text-slate-900 text-sm">
+                                <a href="/projects/{{ item.project.id }}" class="hover:text-blue-600 transition">{{ item.project.name }}</a>
+                            </td>
+                            <td class="py-3.5 px-4 font-semibold">{{ "{:,.0f}".format(item.fin.capital) }} ج.م</td>
+                            <td class="py-3.5 px-4 text-emerald-600 font-semibold">{{ "{:,.0f}".format(item.fin.actual_col) }} ج.م</td>
+                            <td class="py-3.5 px-4 text-rose-600 font-semibold">{{ "{:,.0f}".format(item.fin.total_exp) }} ج.م</td>
+                            <td class="py-3.5 px-4 font-extrabold text-emerald-700">{{ "{:,.0f}".format(item.fin.total_profits_allocated) }} ج.م</td>
+                            <td class="py-3.5 px-4 font-bold text-indigo-700 bg-indigo-50/40">{{ "{:,.0f}".format(item.fin.remaining_liquidity) }} ج.م</td>
+                            <td class="py-3.5 px-4">
+                                <span class="text-[11px] px-2.5 py-1 rounded-full font-semibold {% if item.project.status == 'مكتمل' %}bg-emerald-100 text-emerald-800{% elif item.project.status == 'متوقف' %}bg-rose-100 text-rose-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                                    {{ item.project.status }}
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4 text-center">
+                                <div class="flex items-center justify-center gap-1.5">
+                                    <a href="/projects/{{ item.project.id }}" class="bg-slate-900 hover:bg-slate-800 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition inline-block">
+                                        إدارة المشروع والعمليات ←
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- نافذة إضافة مشروع (Modal) -->
+    <div id="projectModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg border border-slate-100">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
+                <h3 class="text-base font-bold text-slate-900">إضافة مشروع استثماري جديد</h3>
+                <button onclick="closeModal('projectModal')" class="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
+            </div>
+
+            <form action="/projects/create" method="POST" class="space-y-3.5">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">كود المشروع</label>
+                        <input type="text" name="code" required placeholder="مثال: PRJ-006" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">اسم المشروع</label>
+                        <input type="text" name="name" required placeholder="مثال: مشروع مصر للتأمين" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">نوع المشروع</label>
+                        <select name="project_type" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                            <option value="عقاري">عقاري</option>
+                            <option value="تجاري">تجاري</option>
+                            <option value="صناعي">صناعي</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">حالة المشروع</label>
+                        <select name="status" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                            <option value="قيد التنفيذ">قيد التنفيذ</option>
+                            <option value="مكتمل">مكتمل</option>
+                            <option value="متوقف">متوقف</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">رأس المال المستهدف (ج.م)</label>
+                    <input type="number" step="any" name="total_capital" value="0" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition">
+                        حفظ المشروع
+                    </button>
+                    <button type="button" onclick="closeModal('projectModal')" class="px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة إضافة مساهم (Modal) -->
+    <div id="investorModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm border border-slate-100">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
+                <h3 class="text-base font-bold text-slate-900">إضافة مساهم جديد للنظام</h3>
+                <button onclick="closeModal('investorModal')" class="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
+            </div>
+
+            <form action="/investors/create" method="POST" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">اسم المساهم بالكامل</label>
+                    <input type="text" name="name" required placeholder="اسم الشريك" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">رقم الهاتف (للواتساب)</label>
+                    <input type="text" name="phone" placeholder="01xxxxxxxxx" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">ملاحظات / بيانات بنكية</label>
+                    <input type="text" name="notes" placeholder="ملاحظات اختيارية" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs transition">
+                        تسجيل المساهم
+                    </button>
+                    <button type="button" onclick="closeModal('investorModal')" class="px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    </script>
+
+</body>
+</html>

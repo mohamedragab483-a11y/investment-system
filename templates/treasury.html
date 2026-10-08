@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الخزينة الموحدة المركزية</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Cairo', sans-serif; }</style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+
+    <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-6 py-3.5 flex justify-between items-center">
+            <div class="flex items-center gap-6">
+                <a href="/" class="text-xs text-slate-400 hover:text-white transition-colors">← لوحة المشاريع</a>
+                <h1 class="text-base font-extrabold tracking-wide">الخزينة الموحدة المركزية (إجمالي السيولة النقدية)</h1>
+            </div>
+            <a href="/" class="bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition border border-slate-700">
+                الرئيسية 🏢
+            </a>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+
+        <!-- بطاقات السيولة الكلية للشركة -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-5 rounded-2xl border border-indigo-200 bg-indigo-50/30 shadow-sm">
+                <span class="text-xs font-bold text-indigo-700 block mb-1">إجمالي السيولة النقدية المتاحة ككل</span>
+                <span class="text-2xl font-extrabold text-indigo-950">{{ "{:,.0f}".format(total_system_liquidity) }} ج.م</span>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-xs font-bold text-slate-400 block mb-1">إجمالي المقبوضات والتحصيلات الكلية</span>
+                <span class="text-2xl font-extrabold text-emerald-600">{{ "{:,.0f}".format(total_system_collected) }} ج.م</span>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-xs font-bold text-slate-400 block mb-1">إجمالي المصروفات الكلية لكافة المشاريع</span>
+                <span class="text-2xl font-extrabold text-rose-600">{{ "{:,.0f}".format(total_system_expenses) }} ج.م</span>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-xs font-bold text-slate-400 block mb-1">إجمالي المسحوبات النقدية المصروفة للشركاء</span>
+                <span class="text-2xl font-extrabold text-amber-600">{{ "{:,.0f}".format(total_system_withdrawn) }} ج.م</span>
+            </div>
+        </div>
+
+        <!-- جدول الخزينة التفصيلي لكل مشروع على حدة -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                    <h2 class="text-base font-bold text-slate-900">مواقف الخزينة والسيولة النقدية حسب كل مشروع</h2>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-right text-xs">
+                    <thead class="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
+                        <tr>
+                            <th class="py-3 px-4">كود</th>
+                            <th class="py-3 px-4">اسم المشروع</th>
+                            <th class="py-3 px-4">التحصيلات الواردة</th>
+                            <th class="py-3 px-4 text-emerald-700">وارد من المطور</th>
+                            <th class="py-3 px-4 text-blue-700">وارد من المبيعات</th>
+                            <th class="py-3 px-4 text-rose-700">المصروفات</th>
+                            <th class="py-3 px-4 text-amber-700">مسحوبات الشركاء</th>
+                            <th class="py-3 px-4 text-indigo-900 font-extrabold bg-indigo-50/50">سيولة الخزينة الحالية</th>
+                            <th class="py-3 px-4 text-center">فتح المشروع</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for row in treasury_rows %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-3.5 px-4 font-mono text-slate-400 font-semibold">{{ row.project.code }}</td>
+                            <td class="py-3.5 px-4 font-bold text-slate-900">{{ row.project.name }}</td>
+                            <td class="py-3.5 px-4 font-semibold text-slate-800">{{ "{:,.0f}".format(row.fin.actual_col) }} ج.م</td>
+                            <td class="py-3.5 px-4 text-emerald-600 font-semibold">{{ "{:,.0f}".format(row.fin.col_from_developer) }} ج.م</td>
+                            <td class="py-3.5 px-4 text-blue-600 font-semibold">{{ "{:,.0f}".format(row.fin.col_from_sales) }} ج.م</td>
+                            <td class="py-3.5 px-4 text-rose-600 font-semibold">{{ "{:,.0f}".format(row.fin.total_exp) }} ج.م</td>
+                            <td class="py-3.5 px-4 text-amber-600 font-semibold">{{ "{:,.0f}".format(row.fin.cash_withdrawn_investors) }} ج.م</td>
+                            <td class="py-3.5 px-4 font-extrabold text-indigo-900 bg-indigo-50/50">{{ "{:,.0f}".format(row.fin.remaining_liquidity) }} ج.م</td>
+                            <td class="py-3.5 px-4 text-center">
+                                <a href="/projects/{{ row.project.id }}" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition">
+                                    تفاصيل الخزينة ←
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+</body>
+</html>

@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المشروع - {{ project.name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Cairo', sans-serif; }</style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+
+    <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-6 py-3.5 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <a href="/" class="text-xs text-slate-400 hover:text-white transition-colors">← لوحة المشاريع</a>
+                <div class="h-4 w-px bg-slate-700"></div>
+                <h1 class="text-base font-extrabold tracking-wide">مشروع: {{ project.name }} ({{ project.code }})</h1>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button onclick="openModal('editProjectModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs px-3 py-2 rounded-xl transition border border-slate-700">
+                    تعديل بيانات المشروع ✏️
+                </button>
+                <button onclick="openModal('bulkDistModal')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-2 rounded-xl transition shadow-sm">
+                    ⚡ إقرار وتوزيع دفعة من المطور
+                </button>
+                <button onclick="openModal('withdrawalModal')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-3 py-2 rounded-xl transition shadow-sm">
+                    💵 صرف مسحوبات نقدية
+                </button>
+                <span class="bg-blue-500/20 text-blue-400 text-xs px-3 py-1.5 rounded-full border border-blue-500/30 font-semibold">{{ project.status }}</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+
+        <!-- بطاقات المؤشرات المالية -->
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <span class="text-xs text-slate-400 block mb-1 font-semibold">رأس المال الفعلي</span>
+                <span class="text-lg font-extrabold text-slate-900">{{ "{:,.0f}".format(fin.capital) }} ج.م</span>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <span class="text-xs text-slate-400 block mb-1 font-semibold">دفعات الشركة المطورة</span>
+                <span class="text-lg font-extrabold text-emerald-600">{{ "{:,.0f}".format(fin.col_from_developer) }} ج.م</span>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <span class="text-xs text-slate-400 block mb-1 font-semibold">مبيعات وأقساط الوحدات</span>
+                <span class="text-lg font-extrabold text-blue-600">{{ "{:,.0f}".format(fin.col_from_sales) }} ج.م</span>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <span class="text-xs text-slate-400 block mb-1 font-semibold">المصروفات التشغيلية</span>
+                <span class="text-lg font-extrabold text-rose-600">{{ "{:,.0f}".format(fin.total_exp) }} ج.م</span>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-emerald-200 bg-emerald-50/30 shadow-sm">
+                <span class="text-xs text-emerald-700 block mb-1 font-bold">إجمالي الأرباح المقررة</span>
+                <span class="text-lg font-extrabold text-emerald-800">{{ "{:,.0f}".format(fin.total_profits_allocated) }} ج.م</span>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-indigo-200 bg-indigo-50/40 shadow-sm">
+                <span class="text-xs text-indigo-700 font-bold block mb-1">سيولة الخزينة المتبقية</span>
+                <span class="text-lg font-extrabold text-indigo-900">{{ "{:,.0f}".format(fin.remaining_liquidity) }} ج.م</span>
+            </div>
+        </div>
+
+        <!-- جدول حسابات المساهمين -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-8">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                    <h3 class="text-sm font-bold text-slate-900">جدول المساهمين وتوزيع الأرباح والمسحوبات النقدية ({{ investors_rows|length }} مساهم)</h3>
+                </div>
+                <span class="text-xs text-slate-400 font-semibold">رأس المال ثابت لا ينقص إلا بتصفية المشروع</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-right text-xs">
+                    <thead class="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
+                        <tr>
+                            <th class="py-3 px-3">اسم المساهم</th>
+                            <th class="py-3 px-3">رأس المال الأصلي</th>
+                            <th class="py-3 px-3">نسبة المساهمة</th>
+                            <th class="py-3 px-3 text-amber-700">نسبة الإدارة</th>
+                            <th class="py-3 px-3 text-emerald-700 font-bold">صافي الأرباح المقررة</th>
+                            <th class="py-3 px-3 text-indigo-700 font-bold">إجمالي المستحق</th>
+                            <th class="py-3 px-3 text-rose-600 font-bold">المسحوبات المستلمة</th>
+                            <th class="py-3 px-3 text-amber-800 font-bold">أرباح متبقية</th>
+                            <th class="py-3 px-3 text-emerald-800 font-extrabold bg-emerald-50/50">الرصيد المتبقي</th>
+                            <th class="py-3 px-3 text-center">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for r in investors_rows %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-3.5 px-3 font-bold text-slate-900">
+                                <a href="/investors?investor_id={{ r.investor_id }}" class="hover:text-indigo-600 transition">{{ r.name }}</a>
+                            </td>
+                            <td class="py-3.5 px-3 font-bold text-slate-800">{{ "{:,.0f}".format(r.capital_share) }} ج.م</td>
+                            <td class="py-3.5 px-3 text-indigo-600 font-bold">{{ r.share_pct }}%</td>
+                            <td class="py-3.5 px-3 font-bold">
+                                {% if r.mgmt_fee_pct > 0 %}
+                                    <span class="text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">{{ r.mgmt_fee_pct }}%</span>
+                                {% else %}
+                                    <span class="text-slate-400 bg-slate-100 px-2 py-0.5 rounded">0% (بدون إدارة)</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3.5 px-3 font-extrabold text-emerald-600">{{ "{:,.0f}".format(r.alloc_profit) }} ج.م</td>
+                            <td class="py-3.5 px-3 font-bold text-indigo-700">{{ "{:,.0f}".format(r.total_due) }} ج.م</td>
+                            <td class="py-3.5 px-3 font-bold text-rose-600">{{ "{:,.0f}".format(r.cash_withdrawn) }} ج.م</td>
+                            <td class="py-3.5 px-3 font-bold text-amber-700 bg-amber-50/30">{{ "{:,.0f}".format(r.unwithdrawn_profit) }} ج.م</td>
+                            <td class="py-3.5 px-3 font-extrabold text-emerald-800 bg-emerald-50/50">{{ "{:,.2f}".format(r.remaining) }} ج.م</td>
+                            <td class="py-3.5 px-3 text-center">
+                                <div class="flex items-center justify-center gap-1.5">
+                                    <button onclick="openEditModal({{ r.cont_id }}, '{{ r.name }}', {{ r.capital_share }}, {{ r.mgmt_fee_pct }})" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2 py-1 rounded text-xs transition border border-slate-300">
+                                        تعديل ✏️
+                                    </button>
+                                    <button onclick="openTransferModal({{ r.investor_id }}, '{{ r.name }}', {{ r.remaining }})" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-2 py-1 rounded text-xs transition border border-indigo-200">
+                                        ترحيل لمشروع جديد 🔄
+                                    </button>
+                                    <form action="/contributions/{{ r.cont_id }}/delete" method="POST" onsubmit="return confirm('هل أنت متأكد من حذف مساهمة الشريك {{ r.name }}؟');">
+                                        <button type="submit" class="bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold px-2 py-1 rounded text-xs transition border border-rose-200">
+                                            حذف 🗑️
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- مخزن الوحدات المخصصة لنا في هذا المشروع -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-8">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                    <h3 class="text-sm font-bold text-slate-900">مخزن الوحدات المخصصة لنا من الشركة المطورة (شقق / محلات)</h3>
+                    <span class="text-xs bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full">{{ units|length }} وحدات</span>
+                </div>
+                <button onclick="openModal('addUnitModal')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl transition">
+                    + إضافة وحدة مخصصة بالمخزن
+                </button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-right text-xs">
+                    <thead class="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
+                        <tr>
+                            <th class="py-3 px-4">كود الوحدة</th>
+                            <th class="py-3 px-4">وصف وموقع الوحدة</th>
+                            <th class="py-3 px-4">النوع</th>
+                            <th class="py-3 px-4">المساحة</th>
+                            <th class="py-3 px-4 text-slate-500 font-bold">التكلفة الفعلية</th>
+                            <th class="py-3 px-4 text-slate-900 font-bold">السعر المستهدف للبيع</th>
+                            <th class="py-3 px-4">الحالة</th>
+                            <th class="py-3 px-4 text-center">إجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for u in units %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-3.5 px-4 font-mono font-bold text-slate-500">{{ u.unit_code }}</td>
+                            <td class="py-3.5 px-4 font-bold text-slate-900">{{ u.unit_name }}</td>
+                            <td class="py-3.5 px-4">{{ u.unit_type }}</td>
+                            <td class="py-3.5 px-4 font-semibold">{{ u.area }} م²</td>
+                            <td class="py-3.5 px-4 font-bold text-slate-600">{{ "{:,.0f}".format(u.cost_price) }} ج.م</td>
+                            <td class="py-3.5 px-4 font-bold text-slate-900">{{ "{:,.0f}".format(u.target_price) }} ج.م</td>
+                            <td class="py-3.5 px-4">
+                                {% if u.status == 'مباعة' %}
+                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800">مباعة (سارية بالأقساط)</span>
+                                {% else %}
+                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">متاحة للبيع ✓</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3.5 px-4 text-center">
+                                <form action="/units/{{ u.id }}/delete" method="POST" onsubmit="return confirm('هل تريد حذف هذه الوحدة من السجل؟');">
+                                    <button type="submit" class="text-rose-600 hover:text-rose-800 font-bold text-xs">حذف 🗑️</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="py-4 text-center text-slate-400">لا توجد وحدات مسجلة بعد. اضغط على "+ إضافة وحدة مخصصة بالمخزن".</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- سجل حركات الأرباح والمسحوبات -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-8">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="text-sm font-bold text-slate-900">سجل حركات الأرباح المقررة والمسحوبات النقدية (مع إمكانية التراجع والحذف)</h3>
+                <span class="text-xs bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full">{{ distributions|length }} حركة</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-right text-xs">
+                    <thead class="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
+                        <tr>
+                            <th class="py-3 px-4">التاريخ</th>
+                            <th class="py-3 px-4">اسم المساهم</th>
+                            <th class="py-3 px-4">نوع الحركة</th>
+                            <th class="py-3 px-4">المبلغ</th>
+                            <th class="py-3 px-4">البيان والملاحظات</th>
+                            <th class="py-3 px-4 text-center">حذف الحركة</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for d in distributions %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-3.5 px-4 font-mono text-slate-500">{{ d.date.strftime("%Y-%m-%d") if d.date else '-' }}</td>
+                            <td class="py-3.5 px-4 font-bold text-slate-800">{{ d.investor.name if d.investor else 'الإدارة' }}</td>
+                            <td class="py-3.5 px-4">
+                                <span class="px-2.5 py-1 rounded-full text-[11px] font-bold {% if d.op_type in ['مسحوب للمساهم', 'مسحوبات نقدية'] %}bg-rose-100 text-rose-800{% else %}bg-emerald-100 text-emerald-800{% endif %}">
+                                    {{ d.op_type }}
+                                </span>
+                            </td>
+                            <td class="py-3.5 px-4 font-extrabold text-slate-900">{{ "{:,.0f}".format(d.amount) }} ج.م</td>
+                            <td class="py-3.5 px-4 text-slate-600">{{ d.description }}</td>
+                            <td class="py-3.5 px-4 text-center">
+                                <form action="/distributions/{{ d.id }}/delete" method="POST" onsubmit="return confirm('هل تريد التراجع عن هذه الحركة وحذفها نهائياً؟');">
+                                    <button type="submit" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold px-2 py-1 rounded text-xs transition">
+                                        تراجع وحذف 🗑️
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="py-4 text-center text-slate-400">لا توجد حركات مسجلة بعد.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- المعاملات السريعة (تحصيل + مصروف + مساهمة جديدة) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    تسجيل تحصيل وارد بالخزينة
+                </h3>
+                <form action="/projects/{{ project.id }}/collections/add" method="POST" class="space-y-3">
+                    <input type="number" step="any" name="amount" required placeholder="المبلغ (ج.م)" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold">
+                    <select name="col_type" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold">
+                        <option value="دفعة من الشركة المطورة">دفعة من الشركة المطورة</option>
+                        <option value="دفعة أولى">دفعة أولى</option>
+                        <option value="دفعة إضافية">دفعة إضافية</option>
+                        <option value="تحصيل نهائي">تحصيل نهائي</option>
+                    </select>
+                    <input type="text" name="description" placeholder="بيان الدفعة" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold">
+                    <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-xs transition">حفظ التحصيل بالخزينة</button>
+                </form>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                    تسجيل مصروفات تشغيل للمشروع
+                </h3>
+                <form action="/projects/{{ project.id }}/expenses/add" method="POST" class="space-y-3">
+                    <input type="number" step="any" name="amount" required placeholder="المبلغ (ج.م)" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold">
+                    <select name="exp_type" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold">
+                        <option value="مصاريف تشغيل">مصاريف تشغيل وإدارة</option>
+                        <option value="عمولة">عمولات وتسويق</option>
+                        <option value="ضرائب">ضرائب وتراخيص</option>
+                        <option value="مقاولات">مقاولات وبناء</option>
+                    </select>
+                    <input type="text" name="description" placeholder="بيان الصرف" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold">
+                    <button type="submit" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 rounded-lg text-xs transition">حفظ المصروف</button>
+                </form>
+            </div>
+
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <h3 class="text-sm font-bold text-slate-900 mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                    إدراج شريك / حصة مساهمة جديدة
+                </h3>
+                <form action="/projects/{{ project.id }}/contributions/add" method="POST" class="space-y-3">
+                    <select name="investor_id" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold">
+                        {% for inv in all_investors %}
+                        <option value="{{ inv.id }}">{{ inv.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="number" step="any" name="capital_share" required placeholder="مبلغ المساهمة (ج.م)" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold">
+                    <input type="number" step="any" min="0" name="mgmt_fee_pct" value="0" placeholder="نسبة الإدارة % (اكتب 0 للإلغاء)" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-semibold">
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg text-xs transition">اعتماد المساهمة</button>
+                </form>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- نافذة تعديل بيانات المشروع وحالته وحذفه (Modal) -->
+    <div id="editProjectModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm border border-slate-100">
+            <h3 class="text-base font-bold text-slate-900 mb-3">تعديل بيانات المشروع وحالته</h3>
+            <form action="/projects/{{ project.id }}/update" method="POST" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">اسم المشروع</label>
+                    <input type="text" name="name" value="{{ project.name }}" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">حالة المشروع</label>
+                    <select name="status" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold">
+                        <option value="قيد التنفيذ" {% if project.status == 'قيد التنفيذ' %}selected{% endif %}>قيد التنفيذ</option>
+                        <option value="مكتمل" {% if project.status == 'مكتمل' %}selected{% endif %}>مكتمل</option>
+                        <option value="متوقف" {% if project.status == 'متوقف' %}selected{% endif %}>متوقف</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">رأس المال المستهدف (ج.م)</label>
+                    <input type="number" step="any" name="total_capital" value="{{ project.total_capital }}" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 rounded-xl text-xs transition">حفظ التعديل</button>
+                    <button type="button" onclick="closeModal('editProjectModal')" class="px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition">إلغاء</button>
+                </div>
+            </form>
+            <div class="mt-4 pt-4 border-t border-slate-100">
+                <form action="/projects/{{ project.id }}/delete" method="POST" onsubmit="return confirm('تحذير: هل أنت متأكد من حذف هذا المشروع نهائياً؟');">
+                    <button type="submit" class="w-full text-center text-xs font-bold text-rose-600 hover:text-rose-800">حذف المشروع نهائياً 🗑️</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة إقرار وتوزيع دفعة أرباح من المطور (Modal) -->
+    <div id="bulkDistModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md border border-slate-100">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                    إقرار وتوزيع دفعة أرباح من المطور
+                </h3>
+                <button onclick="closeModal('bulkDistModal')" class="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
+            </div>
+            <p class="text-xs text-slate-500 mb-4">يتم احتساب عمولة الإدارة فقط بعد استرداد كامل رأس المال المكتتب في المشروع، ولا تُخصم أي مسحوبات نقدية إلا عند صرفها فعلياً.</p>
+
+            <form action="/projects/{{ project.id }}/bulk-distribute" method="POST" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">المبلغ الإجمالي الموزع (ج.م)</label>
+                    <input type="number" step="any" name="bulk_amount" required placeholder="مثال: 500000" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold text-emerald-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">البيان / ملاحظات الدفعة</label>
+                    <input type="text" name="description" value="إقرار دفعة أرباح مستلمة من الشركة المطورة" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition">
+                        اعتماد توزيع الدفعة ⚡
+                    </button>
+                    <button type="button" onclick="closeModal('bulkDistModal')" class="px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة صرف مسحوبات نقدية لشريك (Modal) -->
+    <div id="withdrawalModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md border border-slate-100">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                    صرف مسحوبات نقدية لشريك
+                </h3>
+                <button onclick="closeModal('withdrawalModal')" class="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
+            </div>
+            <form action="/projects/{{ project.id }}/withdrawals/add" method="POST" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">اختر الشريك</label>
+                    <select name="investor_id" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                        {% for r in investors_rows %}
+                        <option value="{{ r.investor_id }}">{{ r.name }} (أرباحه المتبقية: {{ "{:,.0f}".format(r.unwithdrawn_profit) }} ج.م)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">المبلغ المصروف نقداً (ج.م)</label>
+                    <input type="number" step="any" name="amount" required placeholder="مثال: 10000" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold text-rose-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">البيان / طريقة الصرف</label>
+                    <input type="text" name="description" value="صرف أرباح نقداً / تحويل بنكي" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 rounded-xl text-xs transition">
+                        تأكيد صرف النقدية 💵
+                    </button>
+                    <button type="button" onclick="closeModal('withdrawalModal')" class="px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة ترحيل مستحقات لمشروع جديد (Modal) -->
+    <div id="transferModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md border border-slate-100">
+            <h3 class="text-base font-bold text-slate-900 mb-2">ترحيل مستحقات شريك لمشروع جديد</h3>
+            <p id="transferInvName" class="text-xs text-indigo-600 font-bold mb-4"></p>
+            <form action="/transfer-between-projects" method="POST" class="space-y-3.5">
+                <input type="hidden" name="source_project_id" value="{{ project.id }}">
+                <input type="hidden" name="investor_id" id="transferInvId">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">اختر المشروع الجديد المحول إليه</label>
+                    <select name="target_project_id" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold">
+                        {% for p in all_projects %}
+                        <option value="{{ p.id }}">{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">المبلغ المراد تحويله كرأس مال (ج.م)</label>
+                    <input type="number" step="any" name="amount" id="transferAmount" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold text-indigo-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">البيان</label>
+                    <input type="text" name="description" value="ترحيل مستحقات للاستثمار في مشروع جديد" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs transition">تأكيد الترحيل 🔄</button>
+                    <button type="button" onclick="closeModal('transferModal')" class="px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة إضافة وحدة مخصصة بالمخزن (Modal) -->
+    <div id="addUnitModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md border border-slate-100">
+            <h3 class="text-base font-bold text-slate-900 mb-3">إضافة وحدة مخصصة لنا من المطور</h3>
+            <form action="/projects/{{ project.id }}/units/add" method="POST" class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">كود الوحدة</label>
+                        <input type="text" name="unit_code" required placeholder="مثال: U-101" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">نوع الوحدة</label>
+                        <select name="unit_type" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                            <option value="شقة">شقة سكنية</option>
+                            <option value="محل">محل تجاري</option>
+                            <option value="مكتب">مكتب إداري</option>
+                            <option value="فيلا">فيلا / دوبلكس</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">وصف وموقع الوحدة</label>
+                    <input type="text" name="unit_name" required placeholder="مثال: شقة 101 - عمارة 4" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">المساحة (م²)</label>
+                        <input type="number" step="any" name="area" value="0" class="w-full px-2 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">التكلفة (ج.م)</label>
+                        <input type="number" step="any" name="cost_price" value="0" placeholder="التكلفة" class="w-full px-2 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">السعر المستهدف</label>
+                        <input type="number" step="any" name="target_price" value="0" placeholder="المستهدف" class="w-full px-2 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                    </div>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs transition">حفظ الوحدة بالمخزن</button>
+                    <button type="button" onclick="closeModal('addUnitModal')" class="px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة تعديل الحصة ونسبة الإدارة (Modal) -->
+    <div id="editModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm border border-slate-100">
+            <h3 class="text-base font-bold text-slate-900 mb-1">تعديل حصة ونسبة إدارة المساهم</h3>
+            <p id="modalInvestorName" class="text-xs text-indigo-600 font-bold mb-4"></p>
+            <form id="editForm" method="POST" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">مبلغ رأس المال (ج.م)</label>
+                    <input type="number" step="any" id="modalCapital" name="capital_share" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold">
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-xs font-semibold text-slate-600">نسبة الإدارة الخاصة به %</label>
+                        <button type="button" onclick="zeroMgmtFee()" class="text-[11px] text-rose-600 font-bold hover:underline">إلغاء الإدارة (0%)</button>
+                    </div>
+                    <input type="number" step="0.1" id="modalMgmt" name="mgmt_fee_pct" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2 rounded-xl text-xs transition">حفظ التعديل</button>
+                    <button type="button" onclick="closeEditModal()" class="px-4 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function openEditModal(contId, name, capital, mgmtPct) {
+            document.getElementById('editForm').action = '/contributions/' + contId + '/edit';
+            document.getElementById('modalInvestorName').innerText = 'المساهم: ' + name;
+            document.getElementById('modalCapital').value = capital;
+            document.getElementById('modalMgmt').value = mgmtPct;
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+        function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); }
+        function zeroMgmtFee() { document.getElementById('modalMgmt').value = 0; }
+        function openTransferModal(invId, invName, remaining) {
+            document.getElementById('transferInvId').value = invId;
+            document.getElementById('transferInvName').innerText = 'المساهم: ' + invName + ' (إجمالي رصيده المتبقي: ' + remaining.toLocaleString() + ' ج.م)';
+            document.getElementById('transferAmount').value = remaining;
+            openModal('transferModal');
+        }
+    </script>
+
+</body>
+</html>

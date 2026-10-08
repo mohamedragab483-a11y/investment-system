@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة المبيعات والوحدات وجدولة الأقساط</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Cairo', sans-serif; }</style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+
+    <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-6 py-3.5 flex justify-between items-center">
+            <div class="flex items-center gap-6">
+                <a href="/" class="text-xs text-slate-400 hover:text-white transition-colors">← لوحة المشاريع</a>
+                <h1 class="text-base font-extrabold tracking-wide">إدارة المبيعات والوحدات وجدولة الأقساط</h1>
+            </div>
+            <button onclick="openModal('saleModal')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                <span>+ تسجيل بيع وحدة (من القائمة المنسدلة) 🏢</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+
+        <!-- بطاقات المؤشرات المالية للمبيعات -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-xs font-bold text-slate-400 block mb-1">إجمالي قيمة المبيعات التعاقدية</span>
+                <span class="text-2xl font-extrabold text-slate-900">{{ "{:,.0f}".format(tot_sales_val) }} ج.م</span>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-xs font-bold text-slate-400 block mb-1">المقدمات المحصلة بالخزينة</span>
+                <span class="text-2xl font-extrabold text-emerald-600">{{ "{:,.0f}".format(tot_collected_down) }} ج.م</span>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-xs font-bold text-slate-400 block mb-1">إجمالي الأقساط المحصلة</span>
+                <span class="text-2xl font-extrabold text-blue-600">{{ "{:,.0f}".format(tot_paid_installments) }} ج.م</span>
+            </div>
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <span class="text-xs font-bold text-slate-400 block mb-1">صافي أرباح بيع الوحدات</span>
+                <span class="text-2xl font-extrabold text-emerald-700">{{ "{:,.0f}".format(tot_profit_from_sales) }} ج.م</span>
+            </div>
+        </div>
+
+        <!-- جدول متابعة الأقساط والتحصيل والتراجع -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-8">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                    <h2 class="text-base font-bold text-slate-900">جدول متابعة الأقساط والتحصيل والتراجع</h2>
+                </div>
+                <span class="text-xs bg-slate-100 text-slate-600 font-bold px-2.5 py-1 rounded-full">{{ all_installments|length }} قسط</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-right text-xs">
+                    <thead class="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
+                        <tr>
+                            <th class="py-3 px-4">رقم القسط</th>
+                            <th class="py-3 px-4">الوحدة المباعة</th>
+                            <th class="py-3 px-4">المشتري</th>
+                            <th class="py-3 px-4">تاريخ الاستحقاق</th>
+                            <th class="py-3 px-4">قيمة القسط</th>
+                            <th class="py-3 px-4">الحالة</th>
+                            <th class="py-3 px-4 text-center">الإجراء</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for inst in all_installments %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-3.5 px-4 font-bold text-slate-700">قسط #{{ inst.installment_no }}</td>
+                            <td class="py-3.5 px-4 font-bold text-slate-900">{{ inst.sale.unit_description }}</td>
+                            <td class="py-3.5 px-4 font-semibold text-slate-800">{{ inst.sale.buyer_name }}</td>
+                            <td class="py-3.5 px-4 font-mono font-semibold text-slate-600">{{ inst.due_date.strftime("%Y-%m-%d") if inst.due_date else '-' }}</td>
+                            <td class="py-3.5 px-4 font-extrabold text-slate-900">{{ "{:,.0f}".format(inst.amount) }} ج.م</td>
+                            <td class="py-3.5 px-4">
+                                {% if inst.status == 'مسدد' %}
+                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">مسدد بالخزينة ✓</span>
+                                {% else %}
+                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">مستحق السداد</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3.5 px-4 text-center">
+                                {% if inst.status != 'مسدد' %}
+                                <form action="/installments/{{ inst.id }}/pay" method="POST" onsubmit="return confirm('تأكيد تحصيل القسط بمبلغ {{ inst.amount }} ج.م وترحيله للخزينة؟');">
+                                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition">
+                                        تحصيل القسط 💰
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form action="/installments/{{ inst.id }}/revert" method="POST" onsubmit="return confirm('هل تريد التراجع عن سداد هذا القسط وإعادته لمستحق؟');">
+                                    <button type="submit" class="bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 font-bold px-3 py-1.5 rounded-lg text-xs transition">
+                                        تراجع عن السداد ↩️
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- سجل عمليات البيع والوحدات المباعة -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center">
+                <h2 class="text-base font-bold text-slate-900">سجل عمليات البيع والتعاقدات (مع تكلفة الوحدة والأرباح المحققة)</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-right text-xs">
+                    <thead class="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
+                        <tr>
+                            <th class="py-3 px-4">كود</th>
+                            <th class="py-3 px-4">المشروع</th>
+                            <th class="py-3 px-4">الوحدة المباعة</th>
+                            <th class="py-3 px-4">المشتري</th>
+                            <th class="py-3 px-4 text-slate-500">التكلفة الفعلية</th>
+                            <th class="py-3 px-4 font-bold">سعر البيع</th>
+                            <th class="py-3 px-4 text-emerald-700 font-bold">ربح البيع</th>
+                            <th class="py-3 px-4">المقدم</th>
+                            <th class="py-3 px-4">المتبقي أقساط</th>
+                            <th class="py-3 px-4 text-center">حذف</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for sale in all_sales %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="py-3.5 px-4 font-mono font-bold text-slate-400">{{ sale.sale_code }}</td>
+                            <td class="py-3.5 px-4 font-bold text-slate-800">{{ sale.project.name }}</td>
+                            <td class="py-3.5 px-4 font-semibold text-slate-900">{{ sale.unit_description }}</td>
+                            <td class="py-3.5 px-4">{{ sale.buyer_name }}</td>
+                            <td class="py-3.5 px-4 text-slate-500">{{ "{:,.0f}".format(sale.cost_price) }} ج.م</td>
+                            <td class="py-3.5 px-4 font-bold text-slate-900">{{ "{:,.0f}".format(sale.total_price) }} ج.م</td>
+                            <td class="py-3.5 px-4 font-bold text-emerald-600 bg-emerald-50/30">+{{ "{:,.0f}".format(sale.net_unit_profit) }} ج.م</td>
+                            <td class="py-3.5 px-4 text-emerald-700 font-bold">{{ "{:,.0f}".format(sale.down_payment) }} ج.م</td>
+                            <td class="py-3.5 px-4 text-amber-600 font-bold">{{ "{:,.0f}".format(sale.remaining_amount) }} ج.م</td>
+                            <td class="py-3.5 px-4 text-center">
+                                <form action="/sales/{{ sale.id }}/delete" method="POST" onsubmit="return confirm('تحذير: هل أنت متأكد من حذف هذه العملية وإعادة الوحدة كمتاحة؟');">
+                                    <button type="submit" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-bold px-2 py-1 rounded text-xs transition">
+                                        حذف 🗑️
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- نافذة تسجيل بيع وحدة بالقائمة المنسدلة الذكية (Modal) -->
+    <div id="saleModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg border border-slate-100">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b border-slate-100">
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                    تسجيل بيع وحدة (اختيار تلقائي من المخزن)
+                </h3>
+                <button onclick="closeModal('saleModal')" class="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
+            </div>
+
+            <form action="/sales/create" method="POST" class="space-y-3">
+                <!-- اختيار الوحدة من القائمة المنسدلة -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">اختر الوحدة من المخزن المتاح</label>
+                    <select name="unit_id" id="unitDropdown" onchange="onUnitSelectChange()" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold text-indigo-900 bg-indigo-50/30">
+                        <option value="0" data-cost="0" data-target="0">-- اختر وحدة مسجلة في المخزن أو سجل يدوياً --</option>
+                        {% for u in available_units %}
+                        <option value="{{ u.id }}" data-cost="{{ u.cost_price }}" data-target="{{ u.target_price }}" data-project="{{ u.project_id }}">
+                            {{ u.project.name }} ⟵ {{ u.unit_name }} [تكلفتها: {{ "{:,.0f}".format(u.cost_price) }} ج.م]
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- في حال البيع الحر اليدوي -->
+                <div id="manualFields" class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">المشروع</label>
+                        <select name="project_id" id="projectSelect" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                            {% for p in all_projects %}
+                            <option value="{{ p.id }}">{{ p.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">اسم / وصف الوحدة</label>
+                        <input type="text" name="custom_unit_name" id="customUnitName" placeholder="مثال: شقة 102" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">التكلفة المحسوبة عليك (ج.م)</label>
+                        <input type="number" step="any" name="custom_cost_price" id="costPriceInput" value="0" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold bg-slate-50 text-slate-700">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">سعر البيع التعاقدي (ج.م)</label>
+                        <input type="number" step="any" name="total_price" id="totalPriceInput" required placeholder="سعر البيع للمشتري" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold text-emerald-700">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">اسم المشتري</label>
+                        <input type="text" name="buyer_name" required placeholder="اسم العميل المشتري" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">هاتف المشتري</label>
+                        <input type="text" name="buyer_phone" placeholder="01xxxxxxxxx" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">طريقة البيع</label>
+                        <select name="sale_type" id="saleTypeSelect" onchange="toggleInstallments()" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                            <option value="تقسيط">بيع بالتقسيط</option>
+                            <option value="كاش">بيع كاش فوري</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">قيمة المقدم (يدخل الخزينة فوراً)</label>
+                        <input type="number" step="any" name="down_payment" id="downPaymentInput" value="0" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                    </div>
+                </div>
+
+                <div id="installmentFields" class="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">عدد الأقساط</label>
+                            <input type="number" name="installments_count" value="12" min="1" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">دورية القسط</label>
+                            <select name="period_type" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                                <option value="شهري">شهري</option>
+                                <option value="ربع سنوي">ربع سنوي</option>
+                                <option value="نصف سنوي">نصف سنوي</option>
+                                <option value="سنوي">سنوي</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">أول قسط</label>
+                            <input type="date" name="first_due_date" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-semibold">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition">
+                        اعتماد البيع وجدولة الأقساط
+                    </button>
+                    <button type="button" onclick="closeModal('saleModal')" class="px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-50 transition">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function toggleInstallments() {
+            var st = document.getElementById('saleTypeSelect').value;
+            var fields = document.getElementById('installmentFields');
+            if (st === 'كاش') { fields.classList.add('hidden'); }
+            else { fields.classList.remove('hidden'); }
+        }
+        function onUnitSelectChange() {
+            var sel = document.getElementById('unitDropdown');
+            var opt = sel.options[sel.selectedIndex];
+            var cost = opt.getAttribute('data-cost');
+            var target = opt.getAttribute('data-target');
+            if (sel.value !== "0") {
+                document.getElementById('costPriceInput').value = cost || 0;
+                document.getElementById('totalPriceInput').value = target || 0;
+                document.getElementById('manualFields').classList.add('hidden');
+            } else {
+                document.getElementById('costPriceInput').value = 0;
+                document.getElementById('totalPriceInput').value = 0;
+                document.getElementById('manualFields').classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>

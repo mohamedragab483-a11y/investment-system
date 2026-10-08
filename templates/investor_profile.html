@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الملف الشخصي للمساهم - {{ inv.name }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Cairo', sans-serif; }</style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+
+    <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-6">
+                <a href="/investors" class="text-xs text-slate-400 hover:text-white transition-colors">← العودة لقائمة المساهمين</a>
+                <h1 class="text-xl font-bold tracking-wide">ملف المساهم: {{ inv.name }}</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="font-mono text-xs bg-slate-800 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700">{{ inv.code }}</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+
+        <!-- بطاقات ملخص الموقف المالي للمساهم -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <span class="text-xs text-slate-500 block mb-1">إجمالي رأس المال المكتتب</span>
+                <span class="text-xl font-bold text-slate-900">{{ "{:,.0f}".format(tot_cap) }} ج.م</span>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                <span class="text-xs text-slate-500 block mb-1">صافي الأرباح المحققة</span>
+                <span class="text-xl font-bold {% if tot_profit >= 0 %}text-emerald-600{% else %}text-rose-60
