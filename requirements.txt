@@ -6,3 +6,4 @@ openpyxl
 sqlalchemy
 pydantic
 itsdangerous
+psycopg[binary]
